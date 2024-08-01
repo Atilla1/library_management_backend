@@ -87,4 +87,11 @@ router.get("/", (req, res) => {
   return res.send(articles);
 });
 
+router.get("/:id", (req, res) => {
+  const article = articles.find((article) => article.id === req.params.id);
+  if (!article)
+    return res.status(404).send("The article with the given id was not found.");
+  return res.send(article);
+});
+
 export default router;
