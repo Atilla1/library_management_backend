@@ -12,7 +12,7 @@ const schema = z.object({
   password: z
     .string()
     .min(1, { message: "Password is required." })
-    .min(8, { message: " " }),
+    .min(8, { message: "Password is too short" }),
 });
 
 type FormData = z.infer<typeof schema>;
