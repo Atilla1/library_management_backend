@@ -1,101 +1,25 @@
 import express from "express";
-import { Category, getCategories } from "./categories";
 import { validate } from "./schemas/Article";
+import { PrismaClient } from "@prisma/client";
 
 const router = express.Router();
+const prisma = new PrismaClient();
 
-export const articles: Article[] = [
-  {
-    id: "1-abcdid",
-    title: "The Great Gatsby",
-    author: "F. Scott Fitzgerald",
-    nbrPages: 180,
-    runTimeMinutes: 0,
-    type: "Book",
-    isBorrowable: true,
-    category: { id: "11_catid", name: "Ficton" },
-  },
-  {
-    id: "2-abcdid",
-    title: "I Have No Mouth & I Must Scream",
-    author: "Harlan Ellison",
-    nbrPages: 0,
-    runTimeMinutes: 125,
-    type: "DVD",
-    isBorrowable: true,
-    category: { id: "22_catid", name: "Action" },
-  },
-  {
-    id: "3-abcdid",
-    title: "Where the Wild Things Are",
-    author: "Maurice Sendak",
-    nbrPages: 0,
-    runTimeMinutes: 120,
-    type: "Audiobook",
-    isBorrowable: false,
-    borrower: "Kalle Anka",
-    borrowDate: "2024-07-01",
-    category: { id: "33_catid", name: "Drama" },
-  },
-  {
-    id: "4-abcdid",
-    title: "I Am America",
-    author: "Stephen Colbert ",
-    nbrPages: 0,
-    runTimeMinutes: 300,
-    type: "DVD",
-    isBorrowable: false,
-    borrower: "Kalle Anka",
-    borrowDate: "2024-07-01",
-    category: { id: "44_catid", name: "Romantik" },
-  },
-  {
-    id: "5-abcdid",
-    title: "Blue Sisters",
-    author: "Coco Mellors ",
-    nbrPages: 280,
-    runTimeMinutes: 0,
-    type: "Book",
-    isBorrowable: true,
-    category: { id: "44_catid", name: "Romantik" },
-  },
-  {
-    id: "6-abcdid",
-    title: "Intermezzo",
-    author: "Sally Rooney",
-    nbrPages: 280,
-    runTimeMinutes: 0,
-    type: "Reference book",
-    isBorrowable: false,
-    category: { id: "44_catid", name: "Romantik" },
-  },
-];
-
-export interface Article {
-  id: string;
-  title: string;
-  runTimeMinutes: number;
-  author: string;
-  nbrPages: number;
-  type: string;
-  isBorrowable?: boolean;
-  category: Category;
-  borrower?: string;
-  borrowDate?: string;
-}
-
-router.get("/", (req, res) => {
+router.get("/", async (req, res) => {
+  const articles = await prisma.article.findMany();
   return res.send(articles);
 });
 
-router.get("/:id", (req, res) => {
-  const article = articles.find((article) => article.id === req.params.id);
+router.get("/:id", async (req, res) => {
+  const article = await prisma.article.findFirst({
+    where: { id: req.params.id },
+  });
   if (!article)
     return res.status(404).send("The article with the given id was not found.");
   return res.send(article);
 });
 
-router.post("/", (req, res) => {
+router.post("/", async (req, res) => {
   //validera body
   const validation = validate(req.body);
 
@@ -103,38 +27,42 @@ router.post("/", (req, res) => {
 
   //skapa det nya artikel objektet
 
-  const category = getCategories().find(
-    (category) => category.id === req.body.categoryId
-  );
+  const category = await prisma.category.findFirst({
+    where: { id: req.body.categoryId },
+  });
 
   if (!category)
     return res
       .status(404)
       .send("The category with the given id was not found.");
 
-  const article: Article = {
-    id: Date.now().toString(),
-    author: req.body.author,
-    title: req.body.title,
-    type: req.body.type,
-    nbrPages: req.body.nbrPages,
-    runTimeMinutes: req.body.runTimeMinutes,
-    borrowDate: req.body.borrowDate,
-    borrower: req.body.borrower,
-    isBorrowable: req.body.isBorrowable,
-    category,
-  };
-
-  articles.push(article);
+  const article = await prisma.article.create({
+    data: {
+      title: req.body.title,
+      author: req.body.author,
+      nbrPages: req.body.nbrPages,
+      runTimeMinute: req.body.runTimeMinute,
+      type: req.body.type,
+      borrowDate: req.body.borrowDate,
+      borrower: req.body.borrower,
+      isBorrowable: req.body.isBorrowable,
+      categoryId: req.body.categoryId,
+    },
+    include: {
+      category: true,
+    },
+  });
 
   //skicka ut till klienten
 
   return res.status(201).send(article);
 });
 
-router.put("/:id", (req, res) => {
+router.put("/:id", async (req, res) => {
   //kolla så att food med id route parametern finns
-  const article = articles.find((article) => article.id === req.params.id);
+  const article = await prisma.article.findFirst({
+    where: { id: req.params.id },
+  });
   if (!article)
     return res.status(404).send("The article with the given id was not found.");
   //validera body
@@ -142,9 +70,9 @@ router.put("/:id", (req, res) => {
 
   if (!validation.success) return res.status(400).send(validation.error.issues);
 
-  const category = getCategories().find(
-    (category) => category.id === req.body.categoryId
-  );
+  const category = await prisma.category.findFirst({
+    where: { id: req.body.categoryId },
+  });
 
   if (!category)
     return res
@@ -152,55 +80,71 @@ router.put("/:id", (req, res) => {
       .send("The category with the given id was not found.");
 
   //uppdatera artikeln
-  (article.author = req.body.author),
-    (article.title = req.body.title),
-    (article.type = req.body.type),
-    (article.nbrPages = req.body.nbrPages),
-    (article.runTimeMinutes = req.body.runTimeMinutes),
-    (article.isBorrowable = req.body.isBorrowable),
-    (article.category = category);
+  const updatedArticle = await prisma.article.update({
+    where: {
+      id: req.params.id,
+    },
+    data: {
+      title: req.body.title,
+      author: req.body.author,
+      nbrPages: req.body.nbrPages,
+      runTimeMinute: req.body.runTimeMinute,
+      type: req.body.type,
+      borrowDate: req.body.borrowDate,
+      borrower: req.body.borrower,
+      isBorrowable: req.body.isBorrowable,
+      categoryId: req.body.categoryId,
+    },
+  });
 
   //skicka ut den uppdaterade artikeln
-  return res.send(article);
+  return res.send(updatedArticle);
 });
 
 //Checka in och ut
-router.put("/:id/borrow", (req, res) => {
-  const article = articles.find((article) => article.id === req.params.id);
+router.put("/:id/borrow", async (req, res) => {
+  // Kontrollera att artikeln finns
+  const article = await prisma.article.findFirst({
+    where: { id: req.params.id },
+  });
+
   if (!article) {
     return res.status(404).send("The article with the given id was not found.");
   }
 
-  if (!article.isBorrowable) {
+  if (!article.isBorrowable && !article.borrower) {
     return res.status(400).send("This article is not borrowable.");
   }
 
-  if (article.borrower) {
-    // Checka in artikel
-    article.borrower = undefined;
-    article.borrowDate = undefined;
-    article.isBorrowable = true;
-  } else {
-    // Checka ut artikel
-    article.borrower = req.body.borrower;
-    article.borrowDate = new Date().toISOString();
-    article.isBorrowable = false;
-  }
+  // Checka in eller checka ut artikeln
+  const updatedArticle = await prisma.article.update({
+    where: { id: req.params.id },
+    data: article.borrower
+      ? { borrower: null, borrowDate: null, isBorrowable: true }
+      : {
+          borrower: req.body.borrower,
+          borrowDate: new Date(),
+          isBorrowable: false,
+        },
+  });
 
-  return res.send(article);
+  // Returnera den uppdaterade artikeln
+  return res.status(200).send(updatedArticle);
 });
 
-router.delete("/:id", (req, res) => {
-  const article = articles.find((article) => article.id === req.params.id);
+router.delete("/:id", async (req, res) => {
+  const article = await prisma.article.findFirst({
+    where: { id: req.params.id },
+  });
 
-  //   if (article) articles.splice(articles.indexOf(article), 1);
   if (!article)
     return res.status(404).send("The article with the given id was not found.");
 
-  const index = articles.indexOf(article);
-  articles.splice(index, 1);
+  const deletedArticle = await prisma.article.delete({
+    where: { id: req.params.id },
+  });
 
-  return res.send(article);
+  return res.send(deletedArticle);
 });
 
 export default router;

@@ -13,7 +13,7 @@ const schema = z
       })
       .min(0, { message: "Number of pages must be at least 0" })
       .max(10000, { message: "Number of pages cannot be higher than 1000" }),
-    runTimeMinutes: z
+    runTimeMinute: z
       .number({ invalid_type_error: "Minutes must be a number, at least 0" })
       .min(0, { message: "Minutes must be at least 0" })
       .max(10000, { message: "Minutes cannot be higher than 1000" }),

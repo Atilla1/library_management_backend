@@ -13,22 +13,29 @@ datasource db {
   url      = env("POSTGRES_PRISMA_URL")
 }
 
-model Category {
-  id      String    @id @default(cuid())
-  name    String
-  Articel Articel[]
+model User {
+  id       String @id @default(cuid())
+  name     String
+  username String
+  password String
 }
 
-model Articel {
-  id             String    @id @default(cuid())
-  title          String
-  runTimesMinute Int
-  author         String
-  nbrPages       Int
-  type           String
-  isBorrowable   Boolean?  @default(true)
-  category       Category  @relation(fields: [categoryId], references: [id])
-  borrower       String?
-  borrowDate     DateTime?
-  categoryId     String
+model Category {
+  id       String    @id @default(cuid())
+  name     String
+  articles Article[]
+}
+
+model Article {
+  id            String    @id @default(cuid())
+  title         String
+  runTimeMinute Int
+  author        String
+  nbrPages      Int
+  type          String
+  isBorrowable  Boolean?  @default(true)
+  category      Category  @relation(fields: [categoryId], references: [id])
+  borrower      String?
+  borrowDate    DateTime?
+  categoryId    String
 }
