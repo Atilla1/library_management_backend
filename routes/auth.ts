@@ -3,14 +3,14 @@ import { validate } from "./schemas/Auth";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import { preprocess } from "zod";
 
 const prisma = new PrismaClient();
 const router = express.Router();
 
 router.post("/", async (req, res) => {
   const validation = validate(req.body);
-  if (!validation.success) return res.status(400).send(validation.error.issues);
+  if (!validation.success)
+    return res.status(400).send(validation.error.issues[0]);
 
   const user = await prisma.user.findFirst({
     where: { username: req.body.username },
