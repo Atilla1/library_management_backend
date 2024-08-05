@@ -10,7 +10,14 @@ const app = express();
 
 const PORT = process.env.PORT || 5888;
 
-app.use(cors({ origin: "http://localhost:5173" }));
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5173",
+      "https://library-management-frontend-glyt.onrender.com",
+    ],
+  })
+);
 app.use(express.json());
 //app.use(checkAuth);
 app.use("/api/categories", categories);
